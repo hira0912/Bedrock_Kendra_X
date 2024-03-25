@@ -1,5 +1,6 @@
 import json
 import os
+import re
 from datetime import datetime
 
 # 元のデータファイルのパス
@@ -22,6 +23,9 @@ if not os.path.exists(output_dir):
 with open(input_file_path, 'r', encoding='utf-8') as f:
     tweets = json.load(f)
 
+# リンクを検出する正規表現
+link_pattern = re.compile(r'https?://\S+')
+
 # 各ツイートを処理する
 for tweet_data in tweets:
     tweet = tweet_data['tweet']
@@ -31,12 +35,20 @@ for tweet_data in tweets:
     # user_mentionsが空でない場合は処理を除外
     if user_mentions:
         continue
-    
+
     full_text = tweet['full_text']
     created_at = tweet['created_at']
 
-    # full_textをShift_JISに変換
-    full_text_sjis = full_text.encode('shift_jis')
+    # full_textにリンクがある場合は処理を除外
+    if link_pattern.search(full_text):
+        continue
+
+    try:
+        # full_textをShift_JISに変換
+        full_text_sjis = full_text.encode('shift_jis')
+    except UnicodeEncodeError:
+        # 変換できない文字が含まれる場合は処理を除外
+        continue
 
     # 日付をYYYYMMDDhhmmss形式に変換
     date_str = datetime.strptime(created_at, '%a %b %d %H:%M:%S %z %Y').strftime('%Y%m%d%H%M%S')
